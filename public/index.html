@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>读心助手 · 聊天分析与应对</title>
+    <style>
+      :root {
+        --bg: #f4f1ea;
+        --card: #fffdf8;
+        --ink: #2b2b2b;
+        --muted: #8a8275;
+        --accent: #c8643c;
+        --accent-soft: #f0d9cd;
+        --line: #e7e0d3;
+        --good: #4a8c5a;
+        --warn: #c89a3c;
+        --hot: #c8643c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 60px; }
+      header h1 { font-size: 22px; margin: 4px 0; }
+      header p { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px; }
+      .scenes { display: flex; gap: 8px; flex-wrap: wrap; }
+      .scene {
+        flex: 1; min-width: 90px; text-align: center; padding: 10px 8px;
+        border: 1px solid var(--line); border-radius: 12px; background: #fff;
+        font-size: 14px; cursor: pointer; user-select: none;
+      }
+      .scene.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+      .uploader {
+        border: 2px dashed var(--line); border-radius: 14px; padding: 24px;
+        text-align: center; color: var(--muted); cursor: pointer; background: #fff;
+      }
+      .uploader.has-img { padding: 8px; }
+      .uploader img { max-width: 100%; border-radius: 10px; display: block; }
+      input[type="file"] { display: none; }
+      textarea {
+        width: 100%; border: 1px solid var(--line); border-radius: 12px;
+        padding: 10px; font: inherit; resize: vertical; min-height: 56px; background: #fff;
+      }
+      button.primary {
+        width: 100%; padding: 14px; border: none; border-radius: 14px;
+        background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary:disabled { opacity: .5; cursor: not-allowed; }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+      .temp-wrap { display: flex; align-items: center; gap: 12px; }
+      .temp-bar { flex: 1; height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; }
+      .temp-fill { height: 100%; border-radius: 6px; transition: width .5s; }
+      .temp-num { font-size: 24px; font-weight: 700; min-width: 46px; text-align: right; }
+
+      .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; }
+      .badge.go { background: #e2f0e5; color: var(--good); }
+      .badge.hold { background: #f6ecd6; color: var(--warn); }
+      .badge.slow { background: #f6dcd2; color: var(--hot); }
+
+      h3.section { font-size: 15px; margin: 18px 0 8px; color: var(--accent); }
+      .item { border-top: 1px solid var(--line); padding: 10px 0; }
+      .item:first-of-type { border-top: none; }
+      .item .k { font-weight: 600; }
+      .item .v { color: var(--muted); font-size: 14px; }
+
+      .reply {
+        background: #fff; border: 1px solid var(--line); border-radius: 12px;
+        padding: 12px; margin-bottom: 10px;
+      }
+      .reply .text { font-size: 15px; }
+      .reply .why { color: var(--muted); font-size: 13px; margin-top: 4px; }
+      .reply button {
+        margin-top: 8px; padding: 6px 14px; border: 1px solid var(--accent);
+        background: #fff; color: var(--accent); border-radius: 999px; font-size: 13px; cursor: pointer;
+      }
+      .avoid li { color: #a3503a; font-size: 14px; }
+      .err { color: #b03a2e; font-size: 14px; }
+      .spinner { text-align: center; color: var(--muted); padding: 20px; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>读心助手</h1>
+        <p>上传一张聊天截图，分析对方此刻的心理状态，给出你下一步该怎么说。</p>
+      </header>
+
+      <div class="card">
+        <label>选择场景</label>
+        <div class="scenes" id="scenes">
+          <div class="scene active" data-scene="dating">情感暧昧</div>
+          <div class="scene" data-scene="sales">销售客户</div>
+          <div class="scene" data-scene="general">通用</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>聊天截图</label>
+        <div class="uploader" id="uploader">
+          <span id="uploaderHint">点击上传 / 拍摄聊天截图</span>
+          <img id="preview" class="hidden" alt="预览" />
+        </div>
+        <input type="file" id="file" accept="image/*" />
+        <div class="hint">右侧气泡识别为「你」，左侧为「对方」。图片只用于本次分析。</div>
+      </div>
+
+      <div class="card">
+        <label>补充背景（可选）</label>
+        <textarea id="note" placeholder="例如：认识两周，第一次约她吃饭被婉拒了 / 这个客户上周说要再考虑考虑"></textarea>
+      </div>
+
+      <button class="primary" id="analyzeBtn" disabled>开始分析</button>
+      <div class="hint" id="globalErr"></div>
+
+      <div id="result" class="hidden"></div>
+    </div>
+
+    <script>
+      const state = { scene: "dating", image: null };
+      const $ = (id) => document.getElementById(id);
+
+      $("scenes").addEventListener("click", (e) => {
+        const el = e.target.closest(".scene");
+        if (!el) return;
+        document.querySelectorAll(".scene").forEach((s) => s.classList.remove("active"));
+        el.classList.add("active");
+        state.scene = el.dataset.scene;
+      });
+
+      $("uploader").addEventListener("click", () => $("file").click());
+      $("file").addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.image = reader.result;
+          $("preview").src = reader.result;
+          $("preview").classList.remove("hidden");
+          $("uploaderHint").classList.add("hidden");
+          $("uploader").classList.add("has-img");
+          $("analyzeBtn").disabled = false;
+        };
+        reader.readAsDataURL(f);
+      });
+
+      $("analyzeBtn").addEventListener("click", analyze);
+
+      async function analyze() {
+        if (!state.image) return;
+        $("globalErr").textContent = "";
+        $("analyzeBtn").disabled = true;
+        $("result").classList.remove("hidden");
+        $("result").innerHTML = '<div class="spinner">正在读心中…（约 10-20 秒）</div>';
+
+        try {
+          const r = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image: state.image,
+              scene: state.scene,
+              note: $("note").value,
+            }),
+          });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "分析失败");
+          render(data.analysis);
+        } catch (err) {
+          $("result").classList.add("hidden");
+          $("globalErr").innerHTML = '<span class="err">' + err.message + "</span>";
+        } finally {
+          $("analyzeBtn").disabled = false;
+        }
+      }
+
+      function tempColor(t) {
+        if (t >= 66) return "var(--hot)";
+        if (t >= 33) return "var(--warn)";
+        return "#6b8cae";
+      }
+      function pushClass(p) {
+        if (p === "可以推进") return "go";
+        if (p === "保持节奏") return "hold";
+        return "slow";
+      }
+      function esc(s) {
+        return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+      }
+
+      function render(a) {
+        const signals = a.signals.map((s) =>
+          `<div class="item"><div class="k">${esc(s.signal)}</div><div class="v">${esc(s.meaning)}</div></div>`
+        ).join("");
+        const replies = a.replies.map((rp, i) =>
+          `<div class="reply">
+             <div class="text">${esc(rp.text)}</div>
+             <div class="why">${esc(rp.why)}</div>
+             <button onclick="copyReply(${i})" data-text="${esc(rp.text)}">复制</button>
+           </div>`
+        ).join("");
+        const avoid = a.avoid.map((x) => `<li>${esc(x)}</li>`).join("");
+
+        $("result").innerHTML = `
+          <div class="card">
+            <label>对方意向热度</label>
+            <div class="temp-wrap">
+              <div class="temp-bar"><div class="temp-fill" style="width:${a.temperature}%;background:${tempColor(a.temperature)}"></div></div>
+              <div class="temp-num" style="color:${tempColor(a.temperature)}">${a.temperature}</div>
+            </div>
+            <div class="v" style="color:var(--muted);font-size:13px;margin-top:6px">${esc(a.temperature_reason)}</div>
+          </div>
+
+          <div class="card">
+            <h3 class="section">对方此刻的心理</h3>
+            <div>${esc(a.counterpart_state)}</div>
+            <h3 class="section">关键信号</h3>
+            ${signals}
+          </div>
+
+          <div class="card">
+            <h3 class="section">现在能不能推进？</h3>
+            <span class="badge ${pushClass(a.can_push)}">${esc(a.can_push)}</span>
+            <div class="v" style="margin-top:8px">${esc(a.push_reason)}</div>
+          </div>
+
+          <div class="card">
+            <h3 class="section">建议这样回</h3>
+            ${replies}
+            <h3 class="section">尽量避免</h3>
+            <ul class="avoid">${avoid}</ul>
+          </div>
+        `;
+      }
+
+      function copyReply(i) {
+        const btn = document.querySelectorAll(".reply button")[i];
+        navigator.clipboard.writeText(btn.dataset.text).then(() => {
+          btn.textContent = "已复制 ✓";
+          setTimeout(() => (btn.textContent = "复制"), 1500);
+        });
+      }
+    </script>
+  </body>
+</html>
