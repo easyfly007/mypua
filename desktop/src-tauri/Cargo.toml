@@ -1,0 +1,21 @@
+[package]
+name = "mypua-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "读心助手 Windows 桌面端：置顶军师面板 + 热键捕获微信窗口"
+
+[lib]
+name = "mypua_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-global-shortcut = "2"
+# 跨进程窗口截图（支持 Windows Graphics Capture）
+xcap = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
+serde_json = "1"

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "mypua-desktop",
+  "version": "0.1.0",
+  "identifier": "com.mypua.desktop",
+  "build": {
+    "frontendDist": "http://localhost:3000"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "读心助手 · 桌面军师",
+        "url": "http://localhost:3000",
+        "width": 430,
+        "height": 800,
+        "alwaysOnTop": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}
